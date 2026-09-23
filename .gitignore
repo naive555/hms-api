@@ -1,5 +1,8 @@
-*.env
+.env.*
 !.env.example
+
+cover.out
+coverage.html
 
 bin/
 
