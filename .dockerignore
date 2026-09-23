@@ -1,10 +1,9 @@
+.git
+
 .env
 .env.*
 !.env.example
 
-cover.out
-coverage.html
-
+tmp/
 bin/
-
-*.pdf
+*.out
