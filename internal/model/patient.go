@@ -21,3 +21,24 @@ type Patient struct {
 	CreatedAt    time.Time `json:"-"`
 	UpdatedAt    time.Time `json:"-"`
 }
+
+type PatientFilter struct {
+	NationalID  string
+	PassportID  string
+	FirstName   string
+	MiddleName  string
+	LastName    string
+	DateOfBirth *Date
+	PhoneNumber string
+	Email       string
+	Limit       int
+	Offset      int
+}
+
+func (f PatientFilter) HISLookupID() string {
+	if f.NationalID != "" {
+		return f.NationalID
+	}
+
+	return f.PassportID
+}

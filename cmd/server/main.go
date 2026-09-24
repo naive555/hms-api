@@ -15,6 +15,8 @@ import (
 	"github.com/naive555/hms-api/internal/auth"
 	"github.com/naive555/hms-api/internal/config"
 	"github.com/naive555/hms-api/internal/handler"
+	"github.com/naive555/hms-api/internal/his"
+	"github.com/naive555/hms-api/internal/middleware"
 	"github.com/naive555/hms-api/internal/repository"
 	"github.com/naive555/hms-api/internal/service"
 	"golang.org/x/crypto/bcrypt"
@@ -43,10 +45,18 @@ func main() {
 
 	hospitalRepo := repository.NewHospitalRepo(pool)
 	staffRepo := repository.NewStaffRepo(pool)
+	patientRepo := repository.NewPatientRepo(pool)
 	tokens := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTTTL)
-	authSvc := service.NewAuthService(hospitalRepo, staffRepo, tokens, bcrypt.DefaultCost)
+	hisClient := his.NewHTTPClient(cfg.HISTimeout)
 
-	r := handler.NewRouter(handler.NewStaffHandler(authSvc))
+	authSvc := service.NewAuthService(hospitalRepo, staffRepo, tokens, bcrypt.DefaultCost)
+	patientSvc := service.NewPatientService(hospitalRepo, patientRepo, hisClient)
+
+	r := handler.NewRouter(
+		handler.NewStaffHandler(authSvc),
+		handler.NewPatientHandler(patientSvc),
+		middleware.Auth(tokens),
+	)
 
 	srv := &http.Server{Addr: ":" + cfg.AppPort, Handler: r, ReadHeaderTimeout: 5 * time.Second}
 	go func() {

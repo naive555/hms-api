@@ -5,14 +5,31 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/naive555/hms-api/internal/apperr"
 )
 
-func NewRouter(staffH *StaffHandler /*, patientH, authMW in next step */) *gin.Engine {
+func init() {
+	v, ok := binding.Validator.Engine().(*validator.Validate)
+	if !ok {
+		return
+	}
+	v.RegisterTagNameFunc(func(f reflect.StructField) string {
+		for _, key := range []string{"json", "form"} {
+			if name, _, _ := strings.Cut(f.Tag.Get(key), ","); name != "" && name != "-" {
+				return name
+			}
+		}
+		return f.Name
+	})
+}
+
+func NewRouter(staffH *StaffHandler, patientH *PatientHandler, authMW gin.HandlerFunc) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	_ = r.SetTrustedProxies(nil)
@@ -24,6 +41,10 @@ func NewRouter(staffH *StaffHandler /*, patientH, authMW in next step */) *gin.E
 	staff := r.Group("/staff")
 	staff.POST("/create", staffH.Create)
 	staff.POST("/login", staffH.Login)
+
+	patient := r.Group("/patient", authMW)
+	patient.GET("/search", patientH.Search)
+
 	return r
 }
 
@@ -40,18 +61,29 @@ func validationMessage(err error) string {
 	var ve validator.ValidationErrors
 
 	if !errors.As(err, &ve) {
-		return "invalid request body"
+		return "malformed request"
 	}
 
 	fe := ve[0]
-	field := strings.ToLower(fe.Field())
+
+	// the json/form tag name, see init
+	field := fe.Field()
+
+	unit := " characters"
+	if fe.Kind() == reflect.Int {
+		unit = ""
+	}
 	switch fe.Tag() {
 	case "required":
 		return field + " is required"
 	case "min":
-		return fmt.Sprintf("%s must be at least %s characters", field, fe.Param())
+		return fmt.Sprintf("%s must be at least %s%s", field, fe.Param(), unit)
 	case "max":
-		return fmt.Sprintf("%s must be at most %s characters", field, fe.Param())
+		return fmt.Sprintf("%s must be at most %s%s", field, fe.Param(), unit)
+	case "email":
+		return field + " must be a valid email address"
+	case "datetime":
+		return field + " must be in YYYY-MM-DD format"
 	}
 
 	return field + " is invalid"
