@@ -10,9 +10,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/naive555/hms-api/internal/auth"
 	"github.com/naive555/hms-api/internal/config"
+	"github.com/naive555/hms-api/internal/handler"
+	"github.com/naive555/hms-api/internal/repository"
+	"github.com/naive555/hms-api/internal/service"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -24,13 +29,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
-	r.SetTrustedProxies(nil)
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		slog.Error("database startup failed", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+	if err := pool.Ping(ctx); err != nil {
+		slog.Error("database connection failed", "error", err)
+		os.Exit(1)
+	}
 
-	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
+	hospitalRepo := repository.NewHospitalRepo(pool)
+	staffRepo := repository.NewStaffRepo(pool)
+	tokens := auth.NewJWTManager(cfg.JWTSecret, cfg.JWTTTL)
+	authSvc := service.NewAuthService(hospitalRepo, staffRepo, tokens, bcrypt.DefaultCost)
+
+	r := handler.NewRouter(handler.NewStaffHandler(authSvc))
 
 	srv := &http.Server{Addr: ":" + cfg.AppPort, Handler: r, ReadHeaderTimeout: 5 * time.Second}
 	go func() {
