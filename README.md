@@ -87,10 +87,10 @@ show the same graceful degradation.
 
 | Method | Path              | Auth   | Input                                                                                         |
 |--------|-------------------|--------|-----------------------------------------------------------------------------------------------|
-| POST   | `/staff/create`   | –      | JSON `{username, password, hospital}`                                                         |
-| POST   | `/staff/login`    | –      | JSON `{username, password, hospital}` → `{access_token, token_type, expires_in}`              |
+| POST   | `/staff/create`   | -      | JSON `{username, password, hospital}`                                                         |
+| POST   | `/staff/login`    | -      | JSON `{username, password, hospital}` -> `{access_token, token_type, expires_in}`              |
 | GET    | `/patient/search` | Bearer | Query (all optional): `national_id, passport_id, first_name, middle_name, last_name, date_of_birth, phone_number, email, limit, offset` |
-| GET    | `/healthz`        | –      | –                                                                                             |
+| GET    | `/healthz`        | -      | -                                                                                             |
 
 Every error uses the same body: `{"error": {"code": "...", "message": "..."}}`.
 The design document has full request and response examples, validation rules and error codes.
@@ -142,8 +142,8 @@ the Compose network. ID searches still work but fall back to local data.
 | Variable       | Default | Description                                     |
 |----------------|---------|-------------------------------------------------|
 | `APP_PORT`     | `8080`  | API listen port                                 |
-| `DATABASE_URL` | –       | PostgreSQL connection string (required)         |
-| `JWT_SECRET`   | –       | HMAC secret, at least 32 characters (required)  |
+| `DATABASE_URL` | -       | PostgreSQL connection string (required)         |
+| `JWT_SECRET`   | -       | HMAC secret, at least 32 characters (required)  |
 | `JWT_TTL`      | `1h`    | Token lifetime (Go duration)                    |
 | `HIS_TIMEOUT`  | `3s`    | Timeout for HIS calls                           |
 
