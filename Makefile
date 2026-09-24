@@ -1,4 +1,4 @@
-.PHONY: up down run test cover race-cover migrate-up migrate-down migrate-new
+.PHONY: up down run test cover migrate-up migrate-down migrate-new
 
 -include .env
 export DB_URL ?= postgres://$(DATABASE_USER):$(DATABASE_PASSWORD)@localhost:5432/$(DATABASE_NAME)?sslmode=disable
@@ -21,11 +21,9 @@ test:
 
 ## Run coverage tests
 cover:
-	go test -cover ./...
-
-## Run race condition and coverage tests
-race-cover:
-	go test -race -cover ./...
+	go test -race -coverprofile=cover.out ./...
+	@grep -v '/cmd/' cover.out > cover.internal.out
+	@go tool cover -func=cover.internal.out | tail -1
 
 migrate-up:
 	migrate -path migrations -database "$(DB_URL)" up
