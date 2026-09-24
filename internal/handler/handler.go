@@ -29,13 +29,11 @@ func NewRouter(staffH *StaffHandler /*, patientH, authMW in next step */) *gin.E
 
 func respondError(c *gin.Context, err error) {
 	var ae *apperr.Error
-	if errors.As(err, &ae) {
-		c.AbortWithStatusJSON(ae.Status, gin.H{"error": gin.H{"code": ae.Code, "message": ae.Message}})
-		return
+	if !errors.As(err, &ae) {
+		slog.ErrorContext(c.Request.Context(), "unhandled error", "error", err, "path", c.FullPath())
+		ae = apperr.ErrInternal
 	}
-	slog.ErrorContext(c.Request.Context(), "unhandled error", "error", err, "path", c.FullPath())
-	c.AbortWithStatusJSON(http.StatusInternalServerError,
-		gin.H{"error": gin.H{"code": "INTERNAL_ERROR", "message": "internal server error"}})
+	c.AbortWithStatusJSON(ae.Status, ae.Body())
 }
 
 func validationMessage(err error) string {
