@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -14,22 +15,10 @@ import (
 	"github.com/naive555/hms-api/internal/apperr"
 )
 
-func init() {
-	v, ok := binding.Validator.Engine().(*validator.Validate)
-	if !ok {
-		return
-	}
-	v.RegisterTagNameFunc(func(f reflect.StructField) string {
-		for _, key := range []string{"json", "form"} {
-			if name, _, _ := strings.Cut(f.Tag.Get(key), ","); name != "" && name != "-" {
-				return name
-			}
-		}
-		return f.Name
-	})
-}
+var registerTagNames sync.Once
 
 func NewRouter(staffH *StaffHandler, patientH *PatientHandler, authMW gin.HandlerFunc) *gin.Engine {
+	registerTagNames.Do(useJSONFieldNames)
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 	_ = r.SetTrustedProxies(nil)
@@ -46,6 +35,21 @@ func NewRouter(staffH *StaffHandler, patientH *PatientHandler, authMW gin.Handle
 	patient.GET("/search", patientH.Search)
 
 	return r
+}
+
+func useJSONFieldNames() {
+	v, ok := binding.Validator.Engine().(*validator.Validate)
+	if !ok {
+		return
+	}
+	v.RegisterTagNameFunc(func(f reflect.StructField) string {
+		for _, key := range []string{"json", "form"} {
+			if name, _, _ := strings.Cut(f.Tag.Get(key), ","); name != "" && name != "-" {
+				return name
+			}
+		}
+		return f.Name
+	})
 }
 
 func respondError(c *gin.Context, err error) {
