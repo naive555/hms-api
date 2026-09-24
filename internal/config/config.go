@@ -16,6 +16,8 @@ type Config struct {
 
 	JWTSecret string
 	JWTTTL    time.Duration
+
+	HISTimeout time.Duration
 }
 
 func Load() (*Config, error) {
@@ -42,6 +44,13 @@ func Load() (*Config, error) {
 		problems = append(problems, fmt.Sprintf("JWT_TTL is not a valid duration: %v", err))
 	} else {
 		cfg.JWTTTL = exp
+	}
+
+	hisTimeout, err := time.ParseDuration(getEnv("HIS_TIMEOUT", "3s"))
+	if err != nil {
+		problems = append(problems, fmt.Sprintf("HIS_TIMEOUT is not a valid duration: %v", err))
+	} else {
+		cfg.HISTimeout = hisTimeout
 	}
 
 	if len(problems) > 0 {

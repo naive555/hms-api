@@ -10,8 +10,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/server ./cmd/server
-
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/server ./cmd/server \
+ && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/mockhis ./cmd/mockhis
 
 ########################
 # Runner (distroless, nonroot)
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /out/server ./cmd/serv
 FROM gcr.io/distroless/static-debian12:nonroot AS runner
 WORKDIR /app
 
-COPY --from=builder /out/server ./server
+COPY --from=builder /out/server /out/mockhis ./
 
 EXPOSE 8080
 

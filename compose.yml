@@ -43,6 +43,13 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+
+  mockhis:
+    build: .
+    command: ["/app/mockhis"]
+    expose:
+      - "8081"
+    restart: unless-stopped
   
   nginx:
     image: nginx:stable-alpine
