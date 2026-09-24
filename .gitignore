@@ -2,7 +2,7 @@
 .env.*
 !.env.example
 
-cover.out
+*.out
 coverage.html
 
 bin/
